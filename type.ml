@@ -4,7 +4,6 @@ type t =
   | Int
   | Bool
   | Var of t option ref
-  | Label of string
   | Fun of t * t
   | List of t
 
@@ -16,23 +15,27 @@ let rec flatten = function
 
 let to_string t =
   let counter = ref 1 in
+  let dic = ref [] in
   let string_of_index n = String.make n '*' in
   let rec to_string_aux = function
     | Int -> "int"
     | Bool -> "bool"
     | Var ({ contents = None } as var) ->
-        let label = string_of_index (!counter) in
-        var := Some (Label (label));
-        counter := !counter + 1;
-        label
+        begin try List.assq var (!dic) with
+        | Not_found ->
+            let label = string_of_index (!counter) in
+            dic := (var, label) :: !dic;
+            counter := !counter + 1;
+            label
+        end
     | Var { contents = Some (t) } -> to_string_aux t
-    | Label (l) -> l
     | Fun ((Fun _) as t1, t2) -> "(" ^ to_string_aux t1 ^ ") -> " ^ to_string_aux t2
     | Fun (t1, t2) -> to_string_aux t1 ^ " -> " ^ to_string_aux t2
     | List ((Fun _) as t) -> "(" ^ to_string_aux t ^ ") list"
     | List (t) -> to_string_aux t ^ " list" in
   counter := 1;
-  to_string_aux (flatten t)
+  dic := [];
+  to_string_aux t
 
 let rec circulation var = function
   | Var (var') when var == var' -> true
