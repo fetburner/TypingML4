@@ -4,6 +4,7 @@ type t =
   | Int
   | Bool
   | Var of t option ref
+  | Label of string
   | Fun of t * t
   | List of t
 
@@ -13,81 +14,83 @@ let rec flatten = function
   | List (t) -> List (flatten t)
   | t -> t
 
-let rec to_string = function
-  | Int -> "int"
-  | Bool -> "bool"
-  | Var { contents = Some (t) } -> to_string t
-  | Var { contents = None } -> "?"
-  | Fun (t1, t2) ->
-      begin match t1 with
-      | Fun _ -> "(" ^ to_string t1 ^ ")"
-      | _ -> to_string t1
-      end ^ " -> " ^ to_string t2
-  | List (t) -> to_string t ^ " list"
+let to_string t =
+  let counter = ref 1 in
+  let string_of_index n = String.make n '*' in
+  let rec to_string_aux = function
+    | Int -> "int"
+    | Bool -> "bool"
+    | Var ({ contents = None } as var) ->
+        let label = string_of_index (!counter) in
+        var := Some (Label (label));
+        counter := !counter + 1;
+        label
+    | Var { contents = Some (t) } -> to_string_aux t
+    | Label (l) -> l
+    | Fun ((Fun _) as t1, t2) -> "(" ^ to_string_aux t1 ^ ") -> " ^ to_string_aux t2
+    | Fun (t1, t2) -> to_string_aux t1 ^ " -> " ^ to_string_aux t2
+    | List ((Fun _) as t) -> "(" ^ to_string_aux t ^ ") list"
+    | List (t) -> to_string_aux t ^ " list" in
+  counter := 1;
+  to_string_aux (flatten t)
+
+let rec circulation var = function
+  | Var (var') when var == var' -> true
+  | Int | Bool | Var { contents = None } -> false
+  | Fun (t1, t2) -> circulation var t1 || circulation var t2
+  | Var { contents = Some (t) } | List (t) -> circulation var t
 
 let rec unify t1 t2 =
   match t1, t2 with
   | Int, Int | Bool, Bool -> ()
   | Var ({ contents = None } as var), t | t, Var ({ contents = None } as var) ->
-      var := Some (t)
+      if circulation var t then raise (Failure "recursive type")
+      else var := Some (t)
   | Var { contents = Some (t1) }, t2 | t2, Var { contents = Some (t1) } ->
       unify t1 t2
   | Fun (t11, t12), Fun (t21, t22) ->
       unify t11 t21;
       unify t12 t22
-  | List (t1), List (t2) ->
-      unify t1 t2
+  | List (t1), List (t2) -> unify t1 t2
 
 let rec typing env = function
   | Exp.Int _ -> Int
   | Exp.Bool _ -> Bool
   | Exp.Var (x) -> Env.find x env
   | Exp.Plus (e1, e2) | Exp.Minus (e1, e2) | Exp.Times (e1, e2) -> 
-      let t1 = typing env e1 in
-      let t2 = typing env e2 in
-      unify t1 Int;
-      unify t2 Int;
+      unify (typing env e1) Int;
+      unify (typing env e2) Int;
       Int
   | Exp.Lt (e1, e2) -> 
-      let t1 = typing env e1 in
-      let t2 = typing env e2 in
-      unify t1 Int;
-      unify t2 Int;
+      unify (typing env e1) Int;
+      unify (typing env e2) Int;
       Bool
   | Exp.If (e1, e2, e3) -> 
-      let t1 = typing env e1 in
       let t2 = typing env e2 in
-      let t3 = typing env e3 in
-      unify t1 Bool;
-      unify t2 t3;
+      unify (typing env e1) Bool;
+      unify t2 (typing env e3);
       t2
   | Exp.Let (x, e1, e2) -> 
       let t1 = typing env e1 in
-      let t2 = typing (Env.add x t1 env) e2 in
-      t2
+      typing (Env.add x t1 env) e2
   | Exp.Fun (x, e) ->
       let alpha = Var (ref None) in 
       let t = typing (Env.add x alpha env) e in
       Fun (alpha, t)
   | Exp.App (e1, e2) ->
       let alpha = Var (ref None) in 
-      let t1 = typing env e1 in
-      let t2 = typing env e2 in
-      unify t1 (Fun (t2, alpha));
+      unify (typing env e1) (Fun (typing env e2, alpha));
       alpha
   | Exp.LetRec (x, e1, e2) ->
       let alpha = Var (ref None) in
       let env' = Env.add x alpha env in 
-      let t1 = typing env' e1 in
-      let t2 = typing env' e2 in
-      unify alpha t1;
-      t1
+      unify alpha (typing env' e1);
+      typing env' e2
   | Exp.Nil ->
       List (Var (ref None))
   | Exp.Cons (e1, e2) -> 
-      let t1 = typing env e1 in
       let t2 = typing env e2 in
-      unify (List (t1)) t2;
+      unify (List (typing env e1)) t2;
       t2
   | Exp.Match (e1, e2, x, y, e3) ->
       let alpha = Var (ref None) in 
