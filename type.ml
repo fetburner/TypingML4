@@ -46,9 +46,10 @@ let rec circulation var = function
 let rec unify t1 t2 =
   match t1, t2 with
   | Int, Int | Bool, Bool -> ()
-  | Var ({ contents = None } as var), t | t, Var ({ contents = None } as var) ->
-      if circulation var t then raise (Failure "recursive type")
-      else var := Some (t)
+  | (Var ({ contents = None } as var) as t1), t2 | t2, (Var ({ contents = None } as var) as t1) ->
+      if t1 <> t2 then
+        if circulation var t2 then raise (Failure "recursive type")
+        else var := Some (t2)
   | Var { contents = Some (t1) }, t2 | t2, Var { contents = Some (t1) } ->
       unify t1 t2
   | Fun (t11, t12), Fun (t21, t22) ->
@@ -99,9 +100,8 @@ let rec typing env = function
       let alpha = Var (ref None) in 
       let t1 = typing env e1 in
       let t2 = typing env e2 in
-      let t3 = typing (Env.add y t1 (Env.add x alpha env)) e3 in
       unify t1 (List (alpha));
-      unify t2 t3;
+      unify t2 (typing (Env.add y t1 (Env.add x alpha env)) e3);
       t2
 
 let ( >> ) f g x = g (f x)
