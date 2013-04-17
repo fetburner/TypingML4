@@ -44,16 +44,16 @@ let rec occur var = function
 let rec unify t1 t2 =
   match t1, t2 with
   | Int, Int | Bool, Bool -> ()
-  | Var (var1), Var (var2) when var1 == var2 -> ()
-  | Var ({ contents = None } as var), t2 | t2, Var ({ contents = None } as var) ->
-      if occur var t2 then raise (Failure "recursive type")
-      else var := Some (t2)
   | Var { contents = Some (t1) }, t2 | t2, Var { contents = Some (t1) }
   | List (t1), List (t2) ->
       unify t1 t2
   | Fun (t11, t12), Fun (t21, t22) ->
       unify t11 t21;
       unify t12 t22
+  | Var (var1), Var (var2) when var1 == var2 -> ()
+  | Var ({ contents = None } as var), t2 | t2, Var ({ contents = None } as var) ->
+      if occur var t2 then raise (Failure "recursive type")
+      else var := Some (t2)
 
 (* 与えられた型環境で式に型を付ける *)
 let rec typing env = function
