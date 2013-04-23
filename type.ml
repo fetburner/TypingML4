@@ -10,9 +10,17 @@ type t =
   | List of t
 
 let to_string t =
-  let counter = ref 1 in
+
+  let string_of_index n =
+    let table = [|
+      "a"; "b"; "c"; "d"; "e"; "f"; "g";
+      "h"; "i"; "j"; "k"; "l"; "m"; "n";
+      "o"; "p"; "q"; "r"; "s"; "t"; "u";
+      "v"; "w"; "x"; "y"; "z" |] in
+    if n < 26 then "'" ^ table.(n)
+    else "'" ^ table.(n mod 26) ^ string_of_int (n / 26) in
+  let counter = ref 0 in
   let dic = ref [] in
-  let string_of_index n = String.make n '*' in
   let rec to_string_aux = function
     | Int -> "int"
     | Bool -> "bool"
@@ -29,7 +37,7 @@ let to_string t =
     | Fun (t1, t2) -> to_string_aux t1 ^ " -> " ^ to_string_aux t2
     | List (Fun _ as t) -> "(" ^ to_string_aux t ^ ") list"
     | List (t) -> to_string_aux t ^ " list" in
-  counter := 1;
+  counter := 0;
   dic := [];
   to_string_aux t
 
