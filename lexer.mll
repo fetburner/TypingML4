@@ -34,7 +34,7 @@ rule token = parse
       { COLON_COLON }
   | "|"
       { BAR }
-  | digit+
+  | "-"? digit+
       { INT(int_of_string (Lexing.lexeme lexbuf)) }
   | "true"
       { BOOL(true) }

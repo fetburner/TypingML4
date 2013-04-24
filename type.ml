@@ -9,16 +9,12 @@ type t =
   | Fun of t * t
   | List of t
 
-let to_string t =
+(* 指定した番号の型変数における文字列表現 *)
+let string_of_var id =
+  "'" ^ String.make 1 (char_of_int (int_of_char 'a' + id mod 26)) ^
+    if id < 26 then "" else string_of_int (id / 26)
 
-  let string_of_index n =
-    let table = [|
-      "a"; "b"; "c"; "d"; "e"; "f"; "g";
-      "h"; "i"; "j"; "k"; "l"; "m"; "n";
-      "o"; "p"; "q"; "r"; "s"; "t"; "u";
-      "v"; "w"; "x"; "y"; "z" |] in
-    if n < 26 then "'" ^ table.(n)
-    else "'" ^ table.(n mod 26) ^ string_of_int (n / 26) in
+let to_string t =
   let counter = ref 0 in
   let dic = ref [] in
   let rec to_string_aux = function
@@ -27,9 +23,9 @@ let to_string t =
     | Var ({ contents = None } as var) ->
         begin try List.assq var (!dic) with
         | Not_found ->
-            let label = string_of_index (!counter) in
+            let label = string_of_var (!counter) in
             dic := (var, label) :: !dic;
-            counter := !counter + 1;
+            incr counter;
             label
         end
     | Var { contents = Some (t) } -> to_string_aux t
