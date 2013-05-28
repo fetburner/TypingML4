@@ -9,6 +9,8 @@ type t =
   | Fun of t * t
   | List of t
 
+exception Unify of t * t
+
 (* 指定した番号の型変数における文字列表現 *)
 let string_of_var id =
   "'" ^ String.make 1 (char_of_int (int_of_char 'a' + id mod 26)) ^
@@ -58,6 +60,8 @@ let rec unify t1 t2 =
   | Var ({ contents = None } as var), t2 | t2, Var ({ contents = None } as var) ->
       if occur var t2 then raise (Failure "recursive type")
       else var := Some (t2)
+  | _ ->
+      raise (Unify (t1, t2))
 
 (* 与えられた型環境で式に型を付ける *)
 let rec typing env = function
