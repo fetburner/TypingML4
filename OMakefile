@@ -160,6 +160,6 @@ PROGRAM = TypingML4
 all: $(OCamlProgram $(PROGRAM), $(FILES))
 
 clean:
-	rm -rf $(filter-proper-targets $(ls R, .)) *.annot
+	rm -rf $(filter-proper-targets $(ls R, .)) *.annot *.cmt *.cmti
 
 .DEFAULT: all

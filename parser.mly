@@ -50,13 +50,13 @@ exp:
   | simple_exp
       { $1 }
   | exp PLUS exp
-      { Plus ($1, $3) }
+      { App (App (Var "+", $1), $3) }
   | exp MINUS exp
-      { Minus ($1, $3) }
+      { App (App (Var "-", $1), $3) }
   | exp AST exp
-      { Times ($1, $3) }
+      { App (App (Var "*", $1), $3) }
   | exp LESS exp
-      { Lt ($1, $3) }
+      { App (App (Var "<", $1), $3) }
   | IF exp THEN exp ELSE exp
       { If ($2, $4, $6) }
   | LET VARIABLE EQUAL exp IN exp

@@ -68,14 +68,6 @@ let rec typing env = function
   | Exp.Int _ -> Int
   | Exp.Bool _ -> Bool
   | Exp.Var (x) -> Env.find x env
-  | Exp.Plus (e1, e2) | Exp.Minus (e1, e2) | Exp.Times (e1, e2) -> 
-      unify (typing env e1) Int;
-      unify (typing env e2) Int;
-      Int
-  | Exp.Lt (e1, e2) -> 
-      unify (typing env e1) Int;
-      unify (typing env e2) Int;
-      Bool
   | Exp.If (e1, e2, e3) -> 
       let t2 = typing env e2 in
       unify (typing env e1) Bool;
@@ -119,4 +111,10 @@ let rec flatten = function
 
 (* 関数の合成 *)
 let ( >> ) f g x = g (f x)
-let of_Exp = typing Env.empty >> flatten
+external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
+let of_Exp = typing (Env.empty
+                       |> Env.add "+" (Fun (Int, Fun (Int, Int)))
+                       |> Env.add "-" (Fun (Int, Fun (Int, Int)))
+                       |> Env.add "*" (Fun (Int, Fun (Int, Int)))
+                       |> Env.add "<" (Fun (Int, Fun (Int, Bool))))
+               >> flatten

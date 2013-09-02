@@ -3,10 +3,6 @@ type t =
   | Int of int
   | Bool of bool
   | Var of string
-  | Plus of t * t
-  | Minus of t * t
-  | Times of t * t
-  | Lt of t * t
   | If of t * t * t
   | Let of string * t * t
   | Fun of string * t
