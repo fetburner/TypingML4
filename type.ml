@@ -71,7 +71,7 @@ let rec typing env = function
   | Exp.If (e1, e2, e3) -> 
       let t2 = typing env e2 in
       unify (typing env e1) Bool;
-      unify t2 (typing env e3);
+      unify t2 @@ typing env e3;
       t2
   | Exp.Let (x, e1, e2) -> 
       typing (Env.add x (typing env e1) env) e2
@@ -80,12 +80,12 @@ let rec typing env = function
       Fun (alpha, typing (Env.add x alpha env) e)
   | Exp.App (e1, e2) ->
       let alpha = Var (ref None) in 
-      unify (typing env e1) (Fun (typing env e2, alpha));
+      unify (typing env e1) @@ Fun (typing env e2, alpha);
       alpha
   | Exp.LetRec (x, e1, e2) ->
       let alpha = Var (ref None) in
       let env' = Env.add x alpha env in 
-      unify alpha (typing env' e1);
+      unify alpha @@ typing env' e1;
       typing env' e2
   | Exp.Nil ->
       List (Var (ref None))
@@ -97,8 +97,8 @@ let rec typing env = function
       let alpha = Var (ref None) in 
       let t1 = typing env e1 in
       let t2 = typing env e2 in
-      unify t1 (List (alpha));
-      unify t2 (typing (Env.add y t1 (Env.add x alpha env)) e3);
+      unify t1 @@ List (alpha);
+      unify t2 @@ typing (Env.add y t1 (Env.add x alpha env)) e3;
       t2
 
 (* この型の表現ではある型tに対してtとVar { contents = Some (t) }の
@@ -111,7 +111,6 @@ let rec flatten = function
 
 (* 関数の合成 *)
 let ( >> ) f g x = g (f x)
-external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
 let of_Exp = typing (Env.empty
                        |> Env.add "+" (Fun (Int, Fun (Int, Int)))
                        |> Env.add "-" (Fun (Int, Fun (Int, Int)))
